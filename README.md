@@ -49,6 +49,14 @@ These reports ensure that financial advice provided is appropriate and aligned w
 
 ---
 
+## 🚀 Setup
+
+Before using this Apps Script project, you'll need to configure the template document ID and enable required services.
+
+👉 **See [SETUP.md](SETUP.md) for detailed configuration instructions**
+
+---
+
 ## 🏢 About SGA Consulting
 
 This project is developed for SGA Consulting to enhance their client onboarding process and ensure consistent, high-quality financial advice documentation.

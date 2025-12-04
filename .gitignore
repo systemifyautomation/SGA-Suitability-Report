@@ -1,0 +1,11 @@
+# Apps Script configuration
+.clasp.json
+.claspignore
+
+# Environment variables and secrets
+.env
+*.local
+
+# OS files
+.DS_Store
+Thumbs.db

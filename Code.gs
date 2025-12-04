@@ -18,7 +18,16 @@ function createDocFromHtml(htmlContent, fileName) {
     throw new Error('fileName is required and must be a non-empty string');
   }
   
-  const TEMPLATE_ID = '1v-RjpuqNioh4V6EankMXtWE-IG_hhu-prpVrj-H_so8';
+  // Get template ID from Script Properties
+  // To set: Project Settings > Script Properties > Add Property
+  // Property name: TEMPLATE_DOCUMENT_ID
+  // Property value: your template document ID
+  const scriptProperties = PropertiesService.getScriptProperties();
+  const TEMPLATE_ID = scriptProperties.getProperty('TEMPLATE_DOCUMENT_ID');
+  
+  if (!TEMPLATE_ID) {
+    throw new Error('TEMPLATE_DOCUMENT_ID not configured in Script Properties. Please add it in Project Settings > Script Properties.');
+  }
   
   // Duplicate the template document
   const templateFile = DriveApp.getFileById(TEMPLATE_ID);
@@ -91,6 +100,6 @@ function createDocFromHtml(htmlContent, fileName) {
   // 'Anyone with the link can edit'
   newFile.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.EDIT);
   
-  // Return the document URL
-  return doc.getUrl();
+  // Return the document URL with sharing parameter
+  return `https://docs.google.com/document/d/${newFileId}/edit?usp=sharing`;
 }
