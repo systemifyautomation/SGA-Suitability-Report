@@ -20,16 +20,9 @@ function exportDocToPdf(docId) {
     const docFile = DriveApp.getFileById(docId);
     const docName = docFile.getName();
     
-    // Get the parent folder(s) of the document
-    const parentFolders = docFile.getParents();
-    
-    // Use the first parent folder, or root if none exists
-    let targetFolder;
-    if (parentFolders.hasNext()) {
-      targetFolder = parentFolders.next();
-    } else {
-      targetFolder = DriveApp.getRootFolder();
-    }
+    // Use the specified folder for PDFs
+    const PDF_FOLDER_ID = '1i8Ri-p-DxLMbyrV7TBRh8tkJ3PhMN-F4';
+    const targetFolder = DriveApp.getFolderById(PDF_FOLDER_ID);
     
     // Export the document as PDF
     // Using the export URL with PDF format
@@ -61,5 +54,59 @@ function exportDocToPdf(docId) {
       throw new Error('Cannot access document with ID: ' + docId + '. Please check permissions.');
     }
     throw error;
+  }
+}
+
+/**
+ * Handles POST requests to export a document as PDF.
+ * 
+ * Expected POST body (JSON):
+ * {
+ *   "docId": "document_id_to_export"
+ * }
+ * 
+ * @param {Object} e - The event object containing the POST request data
+ * @returns {ContentService.TextOutput} JSON response with the PDF file ID or error
+ */
+function doPost(e) {
+  try {
+    // Parse the request body
+    let requestData;
+    try {
+      requestData = JSON.parse(e.postData.contents);
+    } catch (parseError) {
+      return ContentService.createTextOutput(JSON.stringify({
+        success: false,
+        error: 'Invalid JSON in request body'
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+    
+    // Extract docId from request
+    const docId = requestData.docId;
+    
+    // Validate docId
+    if (!docId) {
+      return ContentService.createTextOutput(JSON.stringify({
+        success: false,
+        error: 'docId is required in request body'
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+    
+    // Call the export function
+    const pdfFileId = exportDocToPdf(docId);
+    
+    // Return success response
+    return ContentService.createTextOutput(JSON.stringify({
+      success: true,
+      pdfFileId: pdfFileId,
+      url: `https://drive.google.com/file/d/${pdfFileId}/view?usp=sharing`
+    })).setMimeType(ContentService.MimeType.JSON);
+    
+  } catch (error) {
+    // Return error response
+    return ContentService.createTextOutput(JSON.stringify({
+      success: false,
+      error: error.message || 'An unexpected error occurred'
+    })).setMimeType(ContentService.MimeType.JSON);
   }
 }
