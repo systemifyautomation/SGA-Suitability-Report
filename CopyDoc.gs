@@ -104,11 +104,111 @@ function copyDocAndCreateNew(sourceDocId) {
 }
 
 /**
- * Handles POST requests to add template header and footer to a document.
+ * Replaces the body content of an existing Google Doc with HTML content.
+ * 
+ * This function opens an existing Google Doc, clears its body content,
+ * and replaces it with content converted from the provided HTML.
+ * 
+ * @param {string} docId - The ID of the Google Document to modify
+ * @param {string} htmlContent - The HTML content to insert into the document
+ * @returns {string} The ID of the modified document
+ * @throws {Error} If docId or htmlContent is not provided or is empty
+ * @throws {Error} If the document cannot be accessed
+ */
+function replaceDocContentWithHtml(docId, htmlContent) {
+  // Input validation
+  if (!docId || typeof docId !== 'string' || docId.trim() === '') {
+    throw new Error('docId is required and must be a non-empty string');
+  }
+  if (!htmlContent || typeof htmlContent !== 'string' || htmlContent.trim() === '') {
+    throw new Error('htmlContent is required and must be a non-empty string');
+  }
+  
+  try {
+    // Open the target document
+    const doc = DocumentApp.openById(docId);
+    const body = doc.getBody();
+    
+    // Clear existing body content
+    body.clear();
+    
+    // Create a blob from the HTML content
+    const blob = Utilities.newBlob(htmlContent, 'text/html', 'content.html');
+    
+    // Create a temporary Google Doc from HTML using Drive API advanced service
+    const tempFileName = 'temp_html_' + new Date().getTime();
+    const tempFileResource = {
+      name: tempFileName,
+      mimeType: 'application/vnd.google-apps.document'
+    };
+    
+    let tempHtmlFile = null;
+    
+    try {
+      tempHtmlFile = Drive.Files.create(tempFileResource, blob, {
+        convert: true
+      });
+      
+      // Get the body content from the temporary document
+      const tempDoc = DocumentApp.openById(tempHtmlFile.id);
+      const tempBody = tempDoc.getBody();
+      
+      // Copy content from temp document to the target document
+      const numChildren = tempBody.getNumChildren();
+      for (let i = 0; i < numChildren; i++) {
+        const element = tempBody.getChild(i).copy();
+        const elementType = element.getType();
+        
+        if (elementType === DocumentApp.ElementType.PARAGRAPH) {
+          body.appendParagraph(element);
+        } else if (elementType === DocumentApp.ElementType.TABLE) {
+          body.appendTable(element);
+        } else if (elementType === DocumentApp.ElementType.LIST_ITEM) {
+          body.appendListItem(element);
+        } else if (elementType === DocumentApp.ElementType.HORIZONTAL_RULE) {
+          body.appendHorizontalRule();
+        } else if (elementType === DocumentApp.ElementType.PAGE_BREAK) {
+          body.appendPageBreak();
+        } else if (elementType === DocumentApp.ElementType.INLINE_IMAGE) {
+          body.appendImage(element);
+        }
+      }
+      
+      // Save and close documents
+      tempDoc.saveAndClose();
+      doc.saveAndClose();
+    } finally {
+      // Clean up temporary file
+      if (tempHtmlFile && tempHtmlFile.id) {
+        try {
+          Drive.Files.remove(tempHtmlFile.id);
+        } catch (cleanupError) {
+          // Log cleanup error but don't throw - main operation may have succeeded
+          console.error('Failed to clean up temporary file: ' + cleanupError.message);
+        }
+      }
+    }
+    
+    return docId;
+    
+  } catch (error) {
+    if (error.message.includes('not found') || error.message.includes('access')) {
+      throw new Error('Cannot access document with ID: ' + docId + '. Please check permissions.');
+    }
+    throw error;
+  }
+}
+
+/**
+ * Handles POST requests to modify a Google Document.
+ * 
+ * When htmlContent is provided, replaces the document body with the HTML content.
+ * When only docId is provided, adds template header and footer to the document.
  * 
  * Expected POST body (JSON):
  * {
- *   "docId": "source_document_id"
+ *   "docId": "document_id",
+ *   "htmlContent": "<html>...</html>"  // Optional: if provided, replaces document content
  * }
  * 
  * @param {Object} e - The event object containing the POST request data
@@ -129,6 +229,7 @@ function doPost(e) {
     
     // Extract docId from request
     const docId = requestData.docId;
+    const htmlContent = requestData.htmlContent;
     
     // Validate docId
     if (!docId) {
@@ -138,8 +239,15 @@ function doPost(e) {
       })).setMimeType(ContentService.MimeType.JSON);
     }
     
-    // Call the function to add header and footer
-    const modifiedDocId = copyDocAndCreateNew(docId);
+    let modifiedDocId;
+    
+    // If htmlContent is provided, replace document content with HTML
+    if (htmlContent) {
+      modifiedDocId = replaceDocContentWithHtml(docId, htmlContent);
+    } else {
+      // Otherwise, add header and footer from template
+      modifiedDocId = copyDocAndCreateNew(docId);
+    }
     
     // Return success response
     return ContentService.createTextOutput(JSON.stringify({
