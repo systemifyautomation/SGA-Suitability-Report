@@ -25,13 +25,24 @@ This project requires the Drive API advanced service:
 
 ### Creating Documents from HTML
 
-Use the `createDocFromHtml(htmlContent, fileName)` function to create new Google Documents from HTML content.
+Use the `createDocFromHtml(htmlContent, fileName)` function in `Code.gs` to create new Google Documents from HTML content.
 
-### POST Endpoint
+### Add Template Header/Footer (CopyDoc.gs)
 
-Deploy the script as a Web App to use the POST endpoint. The endpoint accepts JSON with the following parameters:
+Use the `doPost(e)` endpoint in `CopyDoc.gs` to add template header and footer to a document.
 
-**Replace Document Content with HTML:**
+**Request:**
+```json
+{
+  "docId": "your_document_id"
+}
+```
+
+### Replace Document Content with HTML (ReplaceDocContent.gs)
+
+Use the `doPostReplaceContent(e)` endpoint in `ReplaceDocContent.gs` to replace a document's body content with HTML.
+
+**Request:**
 ```json
 {
   "docId": "your_document_id",
@@ -39,21 +50,16 @@ Deploy the script as a Web App to use the POST endpoint. The endpoint accepts JS
 }
 ```
 
-When `htmlContent` is provided, the endpoint will:
+This endpoint will:
 1. Open the document with the specified `docId`
 2. Clear the existing body content
 3. Replace it with the content converted from the provided HTML
 
-**Add Template Header/Footer Only:**
-```json
-{
-  "docId": "your_document_id"
-}
-```
+### Response Format
 
-When only `docId` is provided (without `htmlContent`), the endpoint will add the template header and footer to the document.
+Both endpoints return a JSON response:
 
-**Response:**
+**Success:**
 ```json
 {
   "success": true,
@@ -62,7 +68,7 @@ When only `docId` is provided (without `htmlContent`), the endpoint will add the
 }
 ```
 
-Or in case of error:
+**Error:**
 ```json
 {
   "success": false,
