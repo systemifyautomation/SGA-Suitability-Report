@@ -145,6 +145,8 @@ function replaceDocContentWithHtml(docId, htmlContent) {
     let tempHtmlFile = null;
     
     try {
+      // The convert option ensures the HTML blob is converted to Google Docs format
+      // This allows the Drive API to parse and render HTML into native Docs elements
       tempHtmlFile = Drive.Files.create(tempFileResource, blob, {
         convert: true
       });
