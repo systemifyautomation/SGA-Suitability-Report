@@ -104,15 +104,20 @@ function copyDocAndCreateNew(sourceDocId) {
 }
 
 /**
- * Handles POST requests to add template header and footer to a document.
+ * Handles POST requests for various document operations.
  * 
  * Expected POST body (JSON):
  * {
- *   "docId": "source_document_id"
+ *   "action": "copyDoc" | "exportPdf",
+ *   "docId": "google_document_id"
  * }
  * 
+ * Actions:
+ * - "copyDoc" (default): Add template header and footer to a document
+ * - "exportPdf": Export document as PDF and save in the same folder
+ * 
  * @param {Object} e - The event object containing the POST request data
- * @returns {ContentService.TextOutput} JSON response with the document ID or error
+ * @returns {ContentService.TextOutput} JSON response with the result or error
  */
 function doPost(e) {
   try {
@@ -127,8 +132,9 @@ function doPost(e) {
       })).setMimeType(ContentService.MimeType.JSON);
     }
     
-    // Extract docId from request
+    // Extract docId and action from request
     const docId = requestData.docId;
+    const action = requestData.action || 'copyDoc'; // Default to copyDoc for backward compatibility
     
     // Validate docId
     if (!docId) {
@@ -138,15 +144,33 @@ function doPost(e) {
       })).setMimeType(ContentService.MimeType.JSON);
     }
     
-    // Call the function to add header and footer
-    const modifiedDocId = copyDocAndCreateNew(docId);
-    
-    // Return success response
-    return ContentService.createTextOutput(JSON.stringify({
-      success: true,
-      docId: modifiedDocId,
-      url: `https://docs.google.com/document/d/${modifiedDocId}/edit?usp=sharing`
-    })).setMimeType(ContentService.MimeType.JSON);
+    // Route based on action
+    if (action === 'exportPdf') {
+      // Export document as PDF
+      const pdfFileId = exportDocToPdf(docId);
+      
+      return ContentService.createTextOutput(JSON.stringify({
+        success: true,
+        pdfId: pdfFileId,
+        url: `https://drive.google.com/file/d/${pdfFileId}/view?usp=sharing`
+      })).setMimeType(ContentService.MimeType.JSON);
+      
+    } else if (action === 'copyDoc') {
+      // Add header and footer (default action)
+      const modifiedDocId = copyDocAndCreateNew(docId);
+      
+      return ContentService.createTextOutput(JSON.stringify({
+        success: true,
+        docId: modifiedDocId,
+        url: `https://docs.google.com/document/d/${modifiedDocId}/edit?usp=sharing`
+      })).setMimeType(ContentService.MimeType.JSON);
+      
+    } else {
+      return ContentService.createTextOutput(JSON.stringify({
+        success: false,
+        error: 'Invalid action. Supported actions: "copyDoc", "exportPdf"'
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
     
   } catch (error) {
     // Return error response
