@@ -36,7 +36,6 @@ function exportDocToPdf(docId) {
     const pdfBlob = docFile.getAs('application/pdf');
     
     // Set the PDF filename (same as doc name with .pdf extension)
-    // Remove .gdoc extension if present and add .pdf
     let pdfName = docName;
     if (!pdfName.toLowerCase().endsWith('.pdf')) {
       pdfName = pdfName + '.pdf';
